@@ -1,6 +1,6 @@
 # Overwatch Statistics Comparison Application
 
-This application extracts data of the players of the game Overwatch and compares the statistics between them.\
+This application extracts data of the players of the game Overwatch and compares the statistics between them.
 
 ## Installing
 ```
@@ -8,7 +8,7 @@ git clone git@github.com:svwoodhouse/OverwatchMetricsApplication.git
 cd ./OverwatchMetricsApplication
 python webscraper.py
 ```
-## Executing Tic Tac Toe Game
+## Executing Overwatch Metrics Application
 Upon exectution of the code, the code grabs the player's information using the request library. 
 ```python
 url = "https://playoverwatch.com/en-us/career/pc/takaharimi-1252"
