@@ -57,7 +57,7 @@ plt.ylabel(f"{metric}")
 plt.title("Overwatch Stat's Comparison") 
 plt.show()
 ```
-
+![alt text](Example.png)
 ## Built With
 * [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/) - Python library used for pulling data from HTML and XML files.
 * [requests](https://pypi.org/project/requests/2.7.0/) - Python library used to send HTTP requests. 
