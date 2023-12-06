@@ -19,34 +19,42 @@ soup = bs(page.content, "html.parser")
  Used Beautiful Soup to filter out the HTMLL content that was given during the request for the player's statistical data.
  Sends the data to a text file and formats it to csv for data processing. 
  ```python
-  for characterName, characterID in characters.items():
-      example = soup.findAll("div",{"data-category-id":characterID})
-      for e in example:
-         data = e.findAll("td",{"class":"DataTable-tableColumn"})
-         for d in data:
-            if header == True:
-               title = d.get_text()
-               #print(d.get_text()+ ", ", end="")
-               characterDataFile.write(characterName + "," + title + ",")
-               header = False
-            else:
-               stats = d.get_text()
-               #print(stats +"\n")
-               header = True
-               characterDataFile.write(stats + "," + playerName + "\n")
+   def getStats(optionID, soup):
+      getMainDiv = soup.findAll("div",{"class":"Profile-heroSummary--view quickPlay-view is-active"})
+      for dataCatagoryDiv in getMainDiv: 
+         getDataCatagoryDiv = dataCatagoryDiv.findAll("div",{"data-category-id":optionID})
+         for characters in getDataCatagoryDiv:
+            characterName = characters.findAll("div", {"class": "Profile-progressBar-title"})
+            characterStat = characters.findAll("div", {"class": "Profile-progressBar-description"})
+            for c, d in zip(characterName, characterStat):
+               if ":" not in d.get_text() and "%" not in d.get_text():
+                  name = c.get_text()
+                  stat= d.get_text()
+                  data.append({"name":name, "title": dataCatagoryID.get(optionID), "stat": stat})
+
+   def gatherStats(data, playerName):
+      for i in data:
+         characterDataFile.write(i["name"] + "," + i["title"] + "," + i['stat'] + "," + playerName + "\n")
 ```
 
 Used pandas to create a dataframe from the csv file. Extracts the data in the dataframe that shows the total amount of medals each user earned using the character Zenyatta. Displays the data via a bar chart.
 ```python
-Overwatch_Stats = pd.read_csv("C:/Users/Sydnee/Desktop/OverwatchWebScraper/characterData.txt",sep=",", encoding ='unicode_escape', names=["Hero","Category", "Stat", "Player"])
-#print (Overwatch_Stats)
-Medals = Overwatch_Stats[Overwatch_Stats["Category"] == "Medals"]
-Medals["Stat"] = Medals["Stat"].astype(str).astype(int)
-#print(Medals["Stat"])
-Zen = Medals[Medals["Hero"] == "Zenyatta"]
-#Zen["Stat"].astype("int32").dtypes
-Zen.plot(kind = "bar", y="Stat", x="Player")
-#print (list(Overwatch_Stats))
+data=pd.read_csv("characterData.txt",sep=",", encoding ='unicode_escape', names=["Hero","Category", "Stat", "Player"])
+
+# bar chart for each character and each category compare the players
+data = data[data["Category"].isin(["Eliminations per Life"])]
+metric = data["Category"].unique()[0]
+
+df = data.pivot_table(index='Hero',
+                  columns='Player', 
+                  values='Stat', 
+                  fill_value=0, 
+                  aggfunc='sum').reset_index()
+
+df.plot(x="Hero", y=[df.columns[1], df.columns[2]], kind="bar") 
+plt.xlabel('Hero')  
+plt.ylabel(f"{metric}")  
+plt.title("Overwatch Stat's Comparison") 
 plt.show()
 ```
 

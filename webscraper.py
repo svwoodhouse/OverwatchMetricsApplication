@@ -12,77 +12,76 @@ bennyURL = "https://overwatch.blizzard.com/en-us/career/blin1343-1104/"
 
 #This grabs the HTML content of the players profile 
 header = {"User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36"}
-page = requests.get(url, headers=header)
+sydneePage = requests.get(url, headers=header)
 bennyPage = requests.get(bennyURL, headers = header)
-bennySoup = bs(bennyPage.content,"html.parser")
-soup = bs(page.content, "html.parser")
+sydneeSoup = bs(sydneePage.content, "html.parser")
 bennySoup = bs(bennyPage.content, "html.parser")
 
 #Text Files containing players Data
 characterDataFile = open(r"characterData.txt", "w+")
 
-#Adding the headers to the file
-#characterDataFile.write("Hero, Category, Stat, Player\n")
-
-#This function gathers the stats from the different players 
-header = True
-
-dataCatagoryID = {}
+# Variables used to store proccessed data
+# Gets the Category ID used to find the title of each stat
+dataCategoryID = {}
+# Used to store the scraped data
 data=[]
 
-def getDataCatagoryID():
+# This function gets the Category IDs that will be used by soup to find the stats for all the different stats
+def getDataCategoryID(soup):
    getMainDiv = soup.findAll("div",{"class":"Profile-heroSummary--view quickPlay-view is-active"})
-   for dataCatagories in getMainDiv:
-      catagories = dataCatagories.findAll("option")
-      for c in catagories:
-         catagory = c.get_text()
-         catagoryID = c['value']
-         dataCatagoryID[catagoryID] = catagory
-
-def getStats(optionID):
+   for dataCategories in getMainDiv:
+      categories = dataCategories.findAll("option")
+      for c in categories:
+         category = c.get_text()
+         categoryID = c['value']
+         dataCategoryID[categoryID] = category
+         
+# This function gets the stats based on the different Category IDs passed in
+def getStats(optionID, soup):
    getMainDiv = soup.findAll("div",{"class":"Profile-heroSummary--view quickPlay-view is-active"})
-   for dataCatagoryDiv in getMainDiv: 
-      getDataCatagoryDiv = soup.findAll("div",{"data-category-id":optionID})
-      for characters in getDataCatagoryDiv:
+   for dataCategoryDiv in getMainDiv: 
+      getDataCategoryDiv = dataCategoryDiv.findAll("div",{"data-category-id":optionID})
+      for characters in getDataCategoryDiv:
          characterName = characters.findAll("div", {"class": "Profile-progressBar-title"})
          characterStat = characters.findAll("div", {"class": "Profile-progressBar-description"})
          for c, d in zip(characterName, characterStat):
-            name = c.get_text()
-            stat= d.get_text()
-            data.append({"name":name, "title": dataCatagoryID.get(optionID), "stat": stat})
+            # Eliminates stats with percentages and any time base data
+            if ":" not in d.get_text() and "%" not in d.get_text():
+               name = c.get_text()
+               stat= d.get_text()
+               data.append({"name":name, "title": dataCategoryID.get(optionID), "stat": stat})
 
-def gatherStats(header, characters, soup, playerName):
-   for characterName, characterID in characters.items():
-      example = soup.findAll("div",{"data-category-id":characterID})
-      for e in example:
-         data = e.findAll("td",{"class":"DataTable-tableColumn"})
-         for d in data:
-            if header == True:
-               title = d.get_text()
-               #print(d.get_text()+ ", ", end="")
-               characterDataFile.write(characterName + "," + title + ",")
-               header = False
-            else:
-               stats = d.get_text()
-               #print(stats +"\n")
-               header = True
-               characterDataFile.write(stats + "," + playerName + "\n")
-         #print(characterName + ", " + title + ", " + stats + ", " + playerName + "\n")
+# Writes data to the file
+def writeDataToFile(data, playerName):
+   for i in data:
+      characterDataFile.write(i["name"] + "," + i["title"] + "," + i['stat'] + "," + playerName + "\n")
 
-getDataCatagoryID()
-for i,id in enumerate(dataCatagoryID):
-   getStats(id)
+# Gets stats for the player 
+getDataCategoryID(sydneeSoup)
+for i,id in enumerate(dataCategoryID):
+   getStats(id, sydneeSoup)
+writeDataToFile(data,"takaharimi")
 
-# (header,characters,soup,"takaharimi")
-# gatherStats(header,characters,bennySoup,"blin1343")
-# characterDataFile.close()
-# Overwatch_Stats = pd.read_csv("characterData.txt",sep=",", encoding ='unicode_escape', names=["Hero","Category", "Stat", "Player"])
-# #print (Overwatch_Stats)
-# Medals = Overwatch_Stats[Overwatch_Stats["Category"] == "Medals"]
-# Medals["Stat"] = Medals["Stat"].astype(str).astype(int)
-# #print(Medals["Stat"])
-# Zen = Medals[Medals["Hero"] == "Zenyatta"]
-# #Zen["Stat"].astype("int32").dtypes
-# Zen.plot(kind = "bar", y="Stat", x="Player")
-# #print (list(Overwatch_Stats))
-# plt.show()
+getDataCategoryID(bennySoup)
+for i,id in enumerate(dataCategoryID):
+   getStats(id, bennySoup)
+writeDataToFile(data,"blin1343")
+
+# Reads in data and displays it as chart
+data=pd.read_csv("characterData.txt",sep=",", encoding ='unicode_escape', names=["Hero","Category", "Stat", "Player"])
+
+#bar chart for each character and each category compare the players
+data = data[data["Category"].isin(["Eliminations per Life"])]
+metric = data["Category"].unique()[0]
+
+df = data.pivot_table(index='Hero',
+                  columns='Player', 
+                  values='Stat', 
+                  fill_value=0, 
+                  aggfunc='sum').reset_index()
+
+df.plot(x="Hero", y=[df.columns[1], df.columns[2]], kind="bar") 
+plt.xlabel('Hero')  
+plt.ylabel(f"{metric}")  
+plt.title("Overwatch Stat's Comparison") 
+plt.show()
